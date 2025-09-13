@@ -13,12 +13,15 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
         _token: vscode.CancellationToken,
     ) {
         webviewView.webview.options = {
-            // Enable JavaScript in the webview
             enableScripts: true,
-            localResourceRoots: [
-                this._extensionUri
-            ]
+            localResourceRoots: [this._extensionUri],
+            retainContextWhenHidden: true // Keep the webview's content loaded when not visible
         };
+
+        // Handle webview resizing
+        webviewView.onDidChangeVisibility(() => {
+            webviewView.webview.html = this._getHtmlContent();
+        });
 
         // Set the HTML content
         webviewView.webview.html = this._getHtmlContent();
@@ -43,17 +46,22 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Hello World Preview</title>
             <style>
-                body {
+                html, body {
                     margin: 0;
                     padding: 0;
+                    width: 100%;
+                    height: 100%;
+                }
+                body {
                     color: black;
                     font-family: var(--vscode-font-family);
-                    width: 100%;
-                    height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: stretch;
                 }
                 .preview-container {
-                    width: 100%;
-                    min-height: 500px;
+                    flex: 1;
+                    margin: 10px;
                     border: 2px solid var(--vscode-panel-border);
                     border-radius: 8px;
                     padding: 20px;
@@ -61,6 +69,7 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
                     background-color: white;
                     overflow-x: hidden;
                     overflow-y: auto;
+                    min-height: 0; /* Important for flex container */
                 }
                 h1 {
                     color: black;
