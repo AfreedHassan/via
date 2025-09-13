@@ -10,10 +10,74 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:helloWorldPreview"
+    "onView:helloWorldPreview",
+    "onCommand:via.inspireAndDesign",
+    "onCommand:via.openResultsFolder",
+    "onCommand:via.setOpenAIKey",
+    "onCommand:via.setFirecrawlKey"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "VIA",
+      "properties": {
+        "via.storage": {
+          "type": "string",
+          "enum": ["local", "supabase"],
+          "default": "local",
+          "markdownDescription": "Where VIA saves history and outputs."
+        },
+        "via.supabaseUrl": { "type": "string", "default": "" },
+        "via.supabaseAnonKey": { "type": "string", "default": "" },
+        "via.userEmail": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Email for magic-link/OTP auth (Supabase)."
+        },
+        "via.firecrawlApiKey": { "type": "string", "default": "" },
+        "via.llm.provider": {
+          "type": "string",
+          "enum": ["openrouter", "openai"],
+          "default": "openrouter"
+        },
+        "via.openrouterApiKey": { "type": "string", "default": "" },
+        "via.llm.model": { "type": "string", "default": "z-ai/glm-4.5-air:free" },
+        "via.llm.temperature": { "type": "number", "default": 0.3 },
+        "via.llm.maxTokens": { "type": "number", "default": 2000 },
+        "via.agentSequentialTools": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Run agent with sequential tool-calling (Firecrawl search) and a tool-taught system prompt."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "via.inspireAndDesign",
+        "title": "VIA: Inspire & Design (Firecrawl)",
+        "category": "VIA"
+      },
+      {
+        "command": "via.openResultsFolder",
+        "title": "VIA: Open Last Results Folder",
+        "category": "VIA"
+      },
+      {
+        "command": "via.setOpenAIKey",
+        "title": "VIA: Set OpenAI API Key (Secret Storage)",
+        "category": "VIA"
+      },
+      {
+        "command": "via.setFirecrawlKey",
+        "title": "VIA: Set Firecrawl API Key (Secret Storage)",
+        "category": "VIA"
+      },
+      {
+        "command": "via.setOpenRouterKey",
+        "title": "VIA: Set OpenRouter API Key (Secret Storage)",
+        "category": "VIA"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -46,5 +110,10 @@
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@mendable/firecrawl-js": "^0.0.7",
+    "openai": "^4.55.0",
+    "dotenv": "^16.4.5"
   }
 }
