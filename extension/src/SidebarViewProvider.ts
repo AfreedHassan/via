@@ -114,26 +114,70 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
       backdrop-filter: blur(5px);
     }
 
-    .preview-container {
-      width: 90%;
-      height: 40%;
-      aspect-ratio: 9/16;
+    .preview-container-top {
+      width: 80%;
+      height: 5%;
 
       /* Standard webview ratio */
       max-height: calc(var(--preview-height) - 16px);
 
       /* Account for body padding */
-      border: 20px solid var(--dark-blue);
-      border-radius: 20px;
-      padding: 16px;
       box-sizing: border-box;
-      background-color: white;
+      background-color: var(--dark-blue);
+      color: white;
+      align-items: center;
       overflow: auto;
       display: flex;
+      font-size: 16px;
       flex-direction: column;
-      gap: 12px;
       margin: 0 auto;
       margin-top: 20px;
+    }
+
+    .preview-container-lower-layer {
+      background-color: var(--dark-blue);
+      width: 80%;  
+      height: 40%;
+      margin: 0 auto;
+    }
+    
+    .preview-container-upper-layer {
+      background-color: white;
+      width: 90%;  
+      height: 85%;
+      margin: 0 auto;
+    }
+
+    .preview-button-container {
+      background-color: var(--dark-blue);
+      width: 80%;  
+      height: 15%;
+      margin: 0 auto;
+      gap: 10px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 10%;
+    }
+
+    .preview-button {
+      background-color: var(--light-blue);
+      height: 30px;
+      width: 60%;
+      color: var(--vscode-button-foreground);
+      font-family: 'Pixelify Sans', var(--vscode-font-family);
+      border: none;
+      margin: auto;
+      padding: 4px 8px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .preview-button:hover {
+      background-color: var(--light-blue);
+      color: white;
     }
     
     .description {
@@ -164,7 +208,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
       border: none;
       margin: 10px auto;
       padding: 4px 8px;
-      border-radius: 15px;
+      border-radius: 20px;
       cursor: pointer;
       font-size: 14px;
     }
@@ -175,7 +219,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     .flex-container {
       display: flex;
       flex-direction: column;
-      gap: 12px;
       height: 100%;
     }
     .outer-container {
@@ -214,16 +257,33 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     </div>
   </div>
   <button class="button" onclick="handleButtonClick()">Peak Style!</button>
-  <div style="border-radius: 0px; " class="outer-container">
-    <div style="border-radius: 0px; margin-top: 30px" class="inner-container">
-        <p class="description"></p>
+  <div class="preview-container-top">
+    <p style="color: white; margin: auto 0;">preview:</p></div>
+    <div class="preview-container-lower-layer">  
+      <div class="preview-container-upper-layer">
+      </div>
+    <div class="preview-button-container">
+      <button class="preview-button">apply</button>
+      <button class="preview-button">request</button>
     </div>
   </div>
 <div>
   <script>
     const vscode = acquireVsCodeApi();
+    
+    function handlePreview() {
+      vscode.postMessage({
+        command: 'preview'
+      });
+    }
+
+    function handleGenerate() {
+      vscode.postMessage({
+        command: 'generate'
+      });
+    }
+
     function handleButtonClick() {
-      // Send a message to the extension
       vscode.postMessage({
         command: 'showAlert'
       });
