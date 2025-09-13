@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export class HelloWorldProvider implements vscode.WebviewViewProvider {
+export class SidebarViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'helloWorldPreview';
 
     constructor(
@@ -33,31 +33,41 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
 
         // Handle webview resizing
         webviewView.onDidChangeVisibility(() => {
-            // Try to enforce size again when visibility changes
-            if ('setSize' in webviewView) {
-                (webviewView as any).setSize(smallSize.width, smallSize.height);
+            if (webviewView.visible) {
+                // Try to enforce size again when visibility changes
+                if ('setSize' in webviewView) {
+                    (webviewView as any).setSize(smallSize.width, smallSize.height);
+                }
+                const bgUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "assets", "background.png"));
+                webviewView.webview.html = this._getHtmlContent(bgUri);
             }
-            this._updateWebview(webviewView);
         });
     }
 
     private _updateWebview(webviewView: vscode.WebviewView) {
-        if (webviewView.visible) {
-            const bgUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "assets", "background.png"));
-            webviewView.webview.html = this._getHtmlContent(bgUri);
+        if (!webviewView.visible) {
+            return;
         }
 
-        // Handle messages from the webview
-        webviewView.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'showAlert':
-                        vscode.window.showInformationMessage('Button clicked!');
-                        return;
+        const bgUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "assets", "background.png"));
+        webviewView.webview.html = this._getHtmlContent(bgUri);
+
+        // Set up message handler only once
+        if (!this._messageHandlerSet) {
+            this._messageHandlerSet = true;
+            webviewView.webview.onDidReceiveMessage(
+                message => {
+                    switch (message.command) {
+                        case 'showAlert':
+                            vscode.window.showInformationMessage('Button clicked!');
+                            return;
+                    }
                 }
-            }
-        );
+            );
+        }
     }
+
+    private _messageHandlerSet: boolean = false;
 
     private _getHtmlContent(bgUri?: vscode.Uri): string {
         return `
@@ -95,7 +105,7 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
       align-items: flex-start;
       padding: 12px;
       box-sizing: border-box;
-      background-image: url('${bgUri}');
+      background: linear-gradient(135deg, var(--dark-blue) 0%, var(--light-blue) 100%);
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
