@@ -4,10 +4,11 @@ A VS Code extension that shows a static website preview in the sidebar. The prev
 
 ## Features
 
-- Dedicated sidebar view with a 350×500px preview container
-- Responsive static website preview
+- Dedicated sidebar view with 9:16 aspect ratio for vertical layout
+- Responsive static website preview that scales with sidebar width
 - Interactive button with click functionality
 - VS Code theme-aware styling
+- Clean, modern preview container with border and rounded corners
 
 ## Development
 
@@ -40,7 +41,14 @@ A VS Code extension that shows a static website preview in the sidebar. The prev
    - A welcome message
    - A styled button
 2. Click the button to see an alert message
-3. The preview should maintain its appearance across different VS Code themes
+3. Try resizing the sidebar - the preview should scale responsively
+4. The preview should maintain its appearance across different VS Code themes
+
+## Development Tips
+
+- Use `npm run watch` to automatically compile changes
+- Press Ctrl+R (Cmd+R on Mac) in the Extension Development Host to reload
+- Check the Debug Console for any error messages
 
 ## Structure
 
