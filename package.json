@@ -1,7 +1,7 @@
 {
-  "name": "via",
-  "displayName": "Via",
-  "description": "VS Code Extension Template",
+  "name": "hello-world-preview",
+  "displayName": "Hello World Preview",
+  "description": "Static website preview in VS Code sidebar",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.85.0"
@@ -9,21 +9,35 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:helloWorldPreview"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [{
-      "command": "via.helloWorld",
-      "title": "Hello World"
-    }]
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "hello-world-sidebar",
+          "title": "Hello World Preview",
+          "icon": "$(preview)"
+        }
+      ]
+    },
+    "views": {
+      "hello-world-sidebar": [
+        {
+          "type": "webview",
+          "id": "helloWorldPreview",
+          "name": "Hello World Preview"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
