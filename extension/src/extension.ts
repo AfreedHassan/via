@@ -1,3 +1,4 @@
+// fix the import error for vscode
 import * as vscode from 'vscode';
 import { HelloWorldProvider } from './helloWorldProvider';
 
