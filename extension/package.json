@@ -30,7 +30,29 @@
           "initialSize": 100
         }
       ]
-    }
+    },
+    "commands": [
+      {
+        "command": "via.inspireAndDesign",
+        "title": "VIA: Inspire & Design (Firecrawl)"
+      },
+      {
+        "command": "via.setFirecrawlKey",
+        "title": "VIA: Set Firecrawl API Key"
+      },
+      {
+        "command": "via.setOpenRouterKey",
+        "title": "VIA: Set OpenRouter API Key"
+      },
+      {
+        "command": "via.setOpenAIKey",
+        "title": "VIA: Set OpenAI API Key"
+      },
+      {
+        "command": "via.openResultsFolder",
+        "title": "VIA: Open Results Folder"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -45,5 +67,10 @@
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@mendable/firecrawl-js": "^4.3.4",
+    "@types/dotenv": "^6.1.1",
+    "dotenv": "^17.2.2"
   }
 }
