@@ -20,8 +20,6 @@ async function testConnection() {
 
     try {
         await client.connect();
-        await client.db("admin").command({ ping: 1 });
-        console.log("Successfully connected to MongoDB!");
         console.log("Using URI:", uri.replace(/\/\/[^@]*@/, '//<credentials>@')); // Safely log URI without credentials
     } catch (error) {
         console.error("Connection failed:", error);
