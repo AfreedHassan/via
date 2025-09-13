@@ -1,6 +1,6 @@
 // fix the import error for vscode
 import * as vscode from 'vscode';
-import { HelloWorldProvider } from './helloWorldProvider';
+import { SidebarViewProvider } from './SidebarViewProvider';
 import * as dotenv from 'dotenv';
 import { LocalAdapter } from './storage.local';
 import { StorageAdapter } from './storage';
@@ -10,12 +10,20 @@ import { getOpenAIClient, generateUI } from './llm';
 import { writeOutput } from './writer';
 
 export function activate(context: vscode.ExtensionContext) {
-	try { dotenv.config(); } catch { /* ignore */ }
+	try { 
+		console.log('Loading .env file from root directory...');
+		const result = dotenv.config({ path: '../.env' });
+		console.log('Dotenv result:', result);
+		console.log('FIRECRAWL_API_KEY present:', !!process.env.FIRECRAWL_API_KEY);
+		console.log('Current working directory:', process.cwd());
+	} catch (error) { 
+		console.error('Error loading .env:', error);
+	}
 	// hydrate secrets from env if present
 	const envPairs: Array<[string, string | undefined]> = [
 		['via.firecrawlApiKey', process.env.FIRECRAWL_API_KEY],
 		['via.openrouterApiKey', process.env.OPENROUTER_API_KEY],
-		['via.openaiApiKey', process.env.OPENAI_API_KEY],
+		//['via.openaiApiKey', process.env.OPENAI_API_KEY],
 	];
 	context.secrets.get('via.firecrawlApiKey').then(async existing => {
 		if (!existing && envPairs[0][1]) { await context.secrets.store(envPairs[0][0], envPairs[0][1] as string); }
@@ -23,17 +31,17 @@ export function activate(context: vscode.ExtensionContext) {
 	context.secrets.get('via.openrouterApiKey').then(async existing => {
 		if (!existing && envPairs[1][1]) { await context.secrets.store(envPairs[1][0], envPairs[1][1] as string); }
 	});
-	context.secrets.get('via.openaiApiKey').then(async existing => {
-		if (!existing && envPairs[2][1]) { await context.secrets.store(envPairs[2][0], envPairs[2][1] as string); }
-	});
+	// context.secrets.get('via.openaiApiKey').then(async existing => {
+	// 	if (!existing && envPairs[2][1]) { await context.secrets.store(envPairs[2][0], envPairs[2][1] as string); }
+	// });
 
     // Register our custom webview provider
-    const helloWorldProvider = new HelloWorldProvider(context.extensionUri);
+    const sidebarViewProvider = new SidebarViewProvider(context.extensionUri);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
-            HelloWorldProvider.viewType,
-            helloWorldProvider
+            SidebarViewProvider.viewType,
+            sidebarViewProvider
         )
     );
 
