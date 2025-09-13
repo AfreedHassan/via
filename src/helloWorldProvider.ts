@@ -45,18 +45,22 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
             <style>
                 body {
                     margin: 0;
-                    padding: 20px;
+                    padding: 0;
                     color: black;
                     font-family: var(--vscode-font-family);
+                    width: 100%;
+                    height: 100vh;
                 }
                 .preview-container {
-                    width: 350px;
-                    height: 500px;
+                    width: 100%;
+                    min-height: 500px;
                     border: 2px solid var(--vscode-panel-border);
                     border-radius: 8px;
                     padding: 20px;
                     box-sizing: border-box;
                     background-color: white;
+                    overflow-x: hidden;
+                    overflow-y: auto;
                 }
                 h1 {
                     color: black;
