@@ -12,16 +12,40 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
+        // Set fixed dimensions
+        webviewView.description = "100x100 Preview";
+        webviewView.title = "Mini Preview";
+
+        // Set webview options
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
-            retainContextWhenHidden: true // Keep the webview's content loaded when not visible
+            // enableFindWidget: false, // Disable find widget to save space
         };
+
+        // Set initial size
+        const smallSize = { width: 100, height: 100 };
+        if ('setSize' in webviewView) {
+            (webviewView as any).setSize(smallSize.width, smallSize.height);
+        }
+
+        // Initial render
+        this._updateWebview(webviewView);
 
         // Handle webview resizing
         webviewView.onDidChangeVisibility(() => {
-            webviewView.webview.html = this._getHtmlContent();
+            // Try to enforce size again when visibility changes
+            if ('setSize' in webviewView) {
+                (webviewView as any).setSize(smallSize.width, smallSize.height);
+            }
+            this._updateWebview(webviewView);
         });
+    }
+
+    private _updateWebview(webviewView: vscode.WebviewView) {
+        if (webviewView.visible) {
+            webviewView.webview.html = this._getHtmlContent();
+        }
 
         // Set the HTML content
         webviewView.webview.html = this._getHtmlContent();
@@ -43,59 +67,72 @@ export class HelloWorldProvider implements vscode.WebviewViewProvider {
         <html lang="en">
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="viewport" content="width=100%, initial-scale=1.0">
             <title>Hello World Preview</title>
             <style>
+                :root {
+                    --preview-height: 500px;
+                }
+
                 html, body {
+                    width: 100%;
+                    height: var(--preview-height);
                     margin: 0;
                     padding: 0;
-                    width: 100%;
-                    height: 100%;
+                    overflow: hidden;
                 }
+                
                 body {
                     color: black;
                     font-family: var(--vscode-font-family);
                     display: flex;
-                    flex-direction: column;
-                    align-items: stretch;
+                    justify-content: flex-start;
+                    align-items: flex-start;
+                    padding: 8px;
+                    box-sizing: border-box;
                 }
+                
                 .preview-container {
-                    flex: 1;
-                    margin: 10px;
+                    width: 100%;
+                    aspect-ratio: 9/16; /* Standard webview ratio */
+                    max-height: calc(var(--preview-height) - 16px); /* Account for body padding */
                     border: 2px solid var(--vscode-panel-border);
                     border-radius: 8px;
-                    padding: 20px;
+                    padding: 16px;
                     box-sizing: border-box;
                     background-color: white;
-                    overflow-x: hidden;
-                    overflow-y: auto;
-                    min-height: 0; /* Important for flex container */
+                    overflow: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    margin-right: 16px;
                 }
                 h1 {
                     color: black;
-                    font-size: 24px;
-                    margin-bottom: 16px;
+                    font-size: 14px;
+                    margin: 0 0 5px 0;
                 }
                 p {
                     color: black;
-                    line-height: 1.6;
-                    margin-bottom: 24px;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    margin: 0 0 10px 0;
                 }
                 button {
                     background-color: var(--vscode-button-background);
                     color: var(--vscode-button-foreground);
                     border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
+                    padding: 4px 8px;
+                    border-radius: 3px;
                     cursor: pointer;
-                    font-size: 14px;
+                    font-size: 10px;
                 }
                 button:hover {
                     background-color: var(--vscode-button-hoverBackground);
                 }
             </style>
         </head>
-        <body>
+        <body width="100px">
             <div class="preview-container">
                 <h1>Hello World</h1>
                 <p>Welcome to the mini landing page preview inside VS Code!</p>
