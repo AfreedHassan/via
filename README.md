@@ -1,53 +1,58 @@
-# Via - VS Code Extension
+# Hello World Preview Extension
 
-This is a template for creating VS Code extensions. It provides a basic structure and example implementation to help you get started with extension development.
+A VS Code extension that shows a static website preview in the sidebar. The preview includes a simple landing page with a header, paragraph, and interactive button.
 
 ## Features
 
-Currently includes:
-- Basic extension setup with TypeScript
-- Example "Hello World" command implementation
-- Standard VS Code extension project structure
-
-## Requirements
-
-- VS Code 1.85.0 or higher
-- Node.js
-
-## Getting Started
-
-1. Clone this repository
-2. Run `npm install` to install dependencies
-3. Press F5 to open a new window with your extension loaded
-4. Run the command "Hello World" from the Command Palette (Ctrl+Shift+P)
-5. You should see a "Hello World from Via!" message
+- Dedicated sidebar view with a 350×500px preview container
+- Responsive static website preview
+- Interactive button with click functionality
+- VS Code theme-aware styling
 
 ## Development
 
-- Run `npm run watch` to compile the extension and watch for file changes
-- Run `npm run test` to run the test suite
-- The entry point of the extension is `src/extension.ts`
-- Package.json's `contributes` section declares the extension's entry points
+### Prerequisites
 
-## Building and Publishing
+- Node.js
+- Visual Studio Code
 
-1. Update version in package.json
-2. Run `vsce package` to create a VSIX file
-3. Publish to the VS Code Marketplace using `vsce publish`
+### Setup and Testing
 
-## Extension Settings
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
 
-This extension contributes the following settings:
-* None yet - customize this section as you add settings
+2. Compile the extension:
+   ```bash
+   npm run compile
+   ```
 
-## Release Notes
+3. Launch the extension:
+   - Press F5 to open a new Extension Development Host window
+   - In the new window, click the Hello World Preview icon in the activity bar (side bar)
+   - The preview panel will open showing the static website
 
-### 0.0.1
+### Testing the Features
 
-Initial release of Via
-- Basic extension template
-- Hello World command implementation
+1. The preview should show:
+   - A header saying "Hello World"
+   - A welcome message
+   - A styled button
+2. Click the button to see an alert message
+3. The preview should maintain its appearance across different VS Code themes
 
-## License
+## Structure
 
-This project is licensed under the MIT License - see the LICENSE file for details
+- `src/extension.ts` - Extension entry point
+- `src/helloWorldProvider.ts` - WebView provider implementation
+- `.vscode/launch.json` - Debug configuration
+- `package.json` - Extension manifest
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
