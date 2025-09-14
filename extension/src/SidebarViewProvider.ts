@@ -17,16 +17,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
   ) {
     this._view = webviewView;
     
-    // Set webview options
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._extensionUri]
     };
 
-    // Initial render
     this._updateWebview(webviewView);
 
-    // Handle webview resizing
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible && !webviewView.webview.html) {
         webviewView.webview.html = this._getHtmlContent();
@@ -35,242 +32,195 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _updateWebview(webviewView: vscode.WebviewView) {
-    if (!webviewView.visible) {
-      return;
-    }
+    if (!webviewView.visible) return;
 
     webviewView.webview.html = this._getHtmlContent();
 
-    // Set up message handler only once
     if (!this._messageHandlerSet) {
       this._messageHandlerSet = true;
-      webviewView.webview.onDidReceiveMessage(
-        message => {
-          switch (message.command) {
-            case 'generateCode':
-              this.handleGenerateCode(message.prompt);
-              return;
-          }
+      webviewView.webview.onDidReceiveMessage(message => {
+        if (message.command === 'generateCode') {
+          this.handleGenerateCode(message.prompt);
         }
-      );
+      });
     }
   }
 
   private async handleGenerateCode(prompt: string) {
     if (!this._view?.visible) return;
 
-    // Show loading message in preview
+    // Show loading state
     await this.updatePreview(`
-      import React from 'react';
-      import ReactDOM from 'react-dom';
-
-      function App() {
-        return (
-          <div className="card" style={{
-            animation: 'slideIn 0.3s ease-out',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '24px',
-            background: 'var(--gray-100)',
-            maxWidth: '300px',
-            margin: '0 auto'
-          }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              border: '2px solid var(--gray-300)',
-              borderTopColor: 'var(--primary)',
-              animation: 'spin 1s linear infinite'
-            }} />
-            <p style={{ 
-              margin: 0,
-              color: 'var(--gray-500)',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}>Generating code...</p>
-          </div>
-        );
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<App />);
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui;
+            background: #f7f9fc;
+          }
+          .loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+          }
+          .spinner {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: 0.2rem solid #e4e9f2;
+            border-top-color: #6b88ff;
+            animation: spin 1s linear infinite;
+          }
+          .text {
+            color: #8f9bb3;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loader">
+          <div class="spinner"></div>
+          <p class="text">Generating website...</p>
+        </div>
+      </body>
+      </html>
     `);
 
     try {
-      // Check for API key
-      const apiKey = await this._context.secrets.get('openrouter_api_key');
+      const apiKey = await this._context.secrets.get('via.openaiApiKey');
       if (!apiKey) {
-        vscode.commands.executeCommand('via.setOpenRouterKey');
-        throw new Error('OpenRouter API key not found. Please enter your API key in the prompt above.');
+        vscode.commands.executeCommand('via.setOpenAIKey');
+        throw new Error('OpenAI API key not found. Please enter your API key.');
       }
 
-      console.log('Sending prompt to OpenRouter:', prompt);
-
-      // Call OpenRouter API to generate code
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://github.com/yourusername/via',
-          'X-Title': 'Via VS Code Extension',
-          'OpenRouter-Completion-Model': 'mistralai/mistral-7b-instruct:free'
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: 'mistralai/mistral-7b-instruct:free',
+          model: 'gpt-4',
           messages: [
-            { role: 'system', content: 'You are a React UI expert. Create visually appealing components following these rules:\n1. Use ONLY inline styles with double braces: style={{ key: "value" }}\n2. Use className instead of class\n3. Always close JSX tags properly\n4. Use proper quote marks: style={{ color: "blue" }} not style={{ color: \'blue\' }}\n5. No trailing commas in style objects\n6. Include hover effects using onMouseEnter/onMouseLeave\n7. Add subtle animations using transform and opacity\n8. Return ONLY the JSX content wrapped in ```jsx\n9. Focus on clean, valid JSX syntax' },
-            { role: 'user', content: `Create a beautifully styled component that shows: ${prompt}. Include animations, hover effects, and a cohesive design. Focus on making it visually appealing.` }
+            { 
+              role: 'system', 
+              content: 'You are a web design expert. Create a complete website/page following these EXACT rules:\n\n1. Use modern HTML5 semantic elements (header, nav, main, section, footer, etc.)\n2. Write clean, well-structured HTML\n3. Include CSS in a <style> tag in the head\n4. Use modern CSS features (flexbox, grid, custom properties, etc.)\n5. Make it responsive and mobile-friendly\n6. Include hover effects and smooth transitions\n7. Use a modern, clean design aesthetic\n8. Include proper meta tags and viewport settings\n9. Use semantic class names\n10. Include comments for major sections\n11. Ensure all interactive elements are properly styled\n12. Use web-safe fonts or link to Google Fonts\n13. Include proper spacing and visual hierarchy\n14. Optimize for accessibility\n15. CRITICAL: Return ONLY the complete HTML document with embedded CSS\n16. CRITICAL: Do not include any external JavaScript\n17. CRITICAL: Use only relative units (rem, em, %, vh, vw) for better responsiveness' 
+            },
+            { 
+              role: 'user', 
+              content: `Create a complete website/page that displays: ${prompt}. Make it a full page layout with multiple sections, beautiful design, and modern styling.` 
+            }
           ],
-          max_tokens: 1000,
-          temperature: 0.7
+          max_tokens: 2000,
+          temperature: 0.3
         })
       });
 
       const data = await response.json();
-      console.log('OpenRouter API response:', data);
 
       if (!response.ok) {
-        let errorMessage = 'Failed to generate code';
-        
-        try {
-          if (typeof data.error === 'string') {
-            errorMessage = data.error;
-          } else if (data.error?.message) {
-            errorMessage = data.error.message;
-          } else if (data.error) {
-            errorMessage = JSON.stringify(data.error);
-          } else if (data.message) {
-            errorMessage = data.message;
-          }
-        } catch (e) {
-          console.error('Error parsing error message:', e);
-        }
-
+        const errorMessage = data.error?.message || data.error || 'Failed to generate code';
         throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
       
       if (!data.choices?.[0]?.message?.content) {
-        console.error('Invalid API response:', data);
-        throw new Error('Invalid response from OpenRouter API');
+        throw new Error('Invalid response from OpenAI API');
       }
 
       const generatedCode = data.choices[0].message.content;
+      console.log('Generated code from AI:', generatedCode);
 
-      // Extract code block from the response
-      const codeMatch = generatedCode.match(/```(?:jsx?|tsx?|react)?\n([\s\S]*?)```/);
-      if (!codeMatch) {
-        throw new Error('No code block found in the response');
+      // The response might still come wrapped in code blocks, let's handle both cases
+      let cleanCode = generatedCode.trim();
+      const htmlMatch = cleanCode.match(/```(?:html)?\n?([\s\S]*?)```/);
+      if (htmlMatch) {
+        cleanCode = htmlMatch[1].trim();
       }
-
-      let cleanCode = codeMatch[1].trim();
-
-      // Clean up the code
-      cleanCode = cleanCode
-        .replace(/import\s+.*?from\s+['"].*?['"];?\n?/g, '') // Remove imports
-        .replace(/export\s+default\s+/g, '') // Remove exports
-        .replace(/"\s*\+\s*"/g, '') // Fix concatenated strings
-        .replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
-
-      // Create a basic React component template
-      const template = `
-import React from 'react';
-import * as ReactDOM from 'react-dom/client';
-
-${cleanCode}
-
-// Initialize React
-(function() {
-  const rootElement = document.getElementById('root');
-  if (!rootElement) {
-    throw new Error('Root element not found');
-  }
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(React.createElement(MedicinalCard, { 
-    medicine: {
-      name: "Sample Medicine",
-      description: "This is a sample medicine description",
-      image: "https://via.placeholder.com/300x200"
-    }
-  }));
-})();`;
+      console.log('Clean code to be rendered:', cleanCode);
 
       // Update the preview with the generated code
-      await this.updatePreview(template);
+      await this.updatePreview(cleanCode);
 
       // Re-enable the input
-      this._view.webview.postMessage({
-        command: 'promptComplete'
-      });
+      this._view.webview.postMessage({ command: 'promptComplete' });
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : JSON.stringify(err, null, 2);
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Failed to generate code:', err);
       vscode.window.showErrorMessage(`Failed to generate code: ${errorMessage}`);
 
       // Show error in preview
       await this.updatePreview(`
-        import React from 'react';
-        import * as ReactDOM from 'react-dom/client';
-
-        function App() {
-          return (
-            <div style={{ 
-              padding: '20px',
-              fontFamily: 'system-ui',
-              color: '#e74c3c',
-              background: '#fef9f9',
-              borderRadius: '8px',
-              border: '1px solid #fadbd9',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}>
-              <h3 style={{ margin: '0 0 10px 0' }}>Error</h3>
-              <p style={{ margin: 0 }}>${JSON.stringify(err, null, 2)}</p>
-            </div>
-          );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body {
+              margin: 0;
+              padding: 1.25rem;
+              font-family: system-ui;
+              color: #e74c3c;
+              background: #fef9f9;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              text-align: center;
+            }
+            .error-container {
+              max-width: 30rem;
+              padding: 1.25rem;
+              border-radius: 0.5rem;
+              border: 1px solid #fadbd9;
+            }
+            h3 { margin: 0 0 0.625rem 0; }
+            p { margin: 0; font-size: 0.875rem; }
+          </style>
+        </head>
+        <body>
+          <div class="error-container">
+            <h3>Error</h3>
+            <p>${errorMessage}</p>
+          </div>
+        </body>
+        </html>
       `);
 
       // Re-enable the input on error
-      this._view.webview.postMessage({
-        command: 'promptComplete'
-      });
+      this._view.webview.postMessage({ command: 'promptComplete' });
     }
   }
 
-  public async updatePreview(reactCode: string) {
-    if (this._view?.visible) {
-      try {
-        const response = await fetch('http://localhost:3001/render', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            framework: 'react',
-            code: reactCode
-          })
-        });
+  public async updatePreview(htmlCode: string) {
+    if (!this._view?.visible) return;
 
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error + (data.details ? `: ${data.details}` : ''));
-        }
-
-        this._view.webview.postMessage({
-          command: 'updatePreview',
-          html: data.html
-        });
-      } catch (err) {
-        console.error('Failed to update preview:', err);
-      }
+    try {
+      // Send the HTML directly to the webview
+      this._view.webview.postMessage({
+        command: 'updatePreview',
+        html: htmlCode
+      });
+    } catch (err) {
+      console.error('Failed to update preview:', err);
+      this._view.webview.postMessage({
+        command: 'updatePreview',
+        html: null,
+        error: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`
+      });
     }
   }
 
@@ -280,7 +230,7 @@ ${cleanCode}
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=100%, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
@@ -313,7 +263,6 @@ ${cleanCode}
       background-repeat: no-repeat;
       height: 100%;
       background-color: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(5px);
     }
 
     .flex-container {
@@ -333,7 +282,6 @@ ${cleanCode}
       box-sizing: border-box;
       margin: 0 auto;
       margin-top: 20px;
-      backdrop-filter: blur(10px);
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
@@ -378,8 +326,7 @@ ${cleanCode}
       margin: 0 auto;
       overflow: hidden;
       position: relative;
-      display: flex;
-      align-items: stretch;
+      display: block;
     }
 
     .preview-button-container {
@@ -443,27 +390,16 @@ ${cleanCode}
   <div class="flex-container">
     <div class="outer-container">
       <div class="inner-container">
-        <input type="text" id="prompt" placeholder="Describe what you are building...">
+        <input type="text" id="prompt" placeholder="Describe the website/page you want to create...">
       </div>
     </div>
-    <button class="button" onclick="handlePromptSubmit()">Generate Component</button>
+    <button class="button" onclick="handlePromptSubmit()">Generate Website</button>
     <div class="preview-container-top">
       <p style="color: white; margin: auto 0;">preview:</p>
     </div>
     <div class="preview-container-lower-layer">  
       <div class="preview-container-upper-layer">
-        <iframe 
-          id="previewFrame"
-          sandbox="allow-scripts"
-          style="
-            width: 100%;
-            height: 100%;
-            border: none;
-            overflow: hidden;
-            display: block;
-            box-sizing: border-box;
-          "
-        ></iframe>
+        <iframe id="previewFrame" style="width: 100%; height: 100%; border: none; background: white; transform-origin: 0 0;" sandbox="allow-scripts allow-same-origin"></iframe>
       </div>
       <div class="preview-button-container">
         <button class="preview-button">apply</button>
@@ -497,17 +433,88 @@ ${cleanCode}
       }
     }
 
-    function updatePreview(html) {
+    function updatePreview(html, error) {
       try {
-        const frame = document.getElementById('previewFrame');
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
+        console.log('updatePreview called with:', { 
+          hasHtml: !!html, 
+          htmlContent: html ? html.substring(0, 100) + '...' : null,
+          error 
+        });
+        const iframe = document.getElementById('previewFrame');
+        if (!iframe) {
+          console.error('Preview iframe not found');
+          return;
+        }
         
-        frame.onload = () => {
-          URL.revokeObjectURL(url);
-        };
-        
-        frame.src = url;
+        if (error) {
+          // Show error message in iframe
+          const errorHtml = \`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body {
+                  margin: 0;
+                  padding: 20px;
+                  font-family: system-ui;
+                  color: #e74c3c;
+                  background: #fef9f9;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                  text-align: center;
+                }
+                h3 { margin: 0 0 10px 0; }
+                p { margin: 0; font-size: 14px; }
+              </style>
+            </head>
+            <body>
+              <h3>Error</h3>
+              <p>\${error}</p>
+            </body>
+            </html>
+          \`;
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          iframeDoc.open();
+          iframeDoc.write(errorHtml);
+          iframeDoc.close();
+        } else if (html) {
+          // Write the HTML content directly to the iframe
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          iframeDoc.open();
+          iframeDoc.write(html);
+          iframeDoc.close();
+        } else {
+          // Show empty state
+          const emptyHtml = \`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body {
+                  margin: 0;
+                  padding: 20px;
+                  font-family: system-ui;
+                  color: #666;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 100vh;
+                }
+              </style>
+            </head>
+            <body>
+              No preview available
+            </body>
+            </html>
+          \`;
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          iframeDoc.open();
+          iframeDoc.write(emptyHtml);
+          iframeDoc.close();
+        }
       } catch (err) {
         console.error('Failed to update preview:', err);
       }
@@ -515,9 +522,10 @@ ${cleanCode}
 
     window.addEventListener('message', event => {
       const message = event.data;
+      console.log('Received message:', message);
       switch (message.command) {
         case 'updatePreview':
-          updatePreview(message.html);
+          updatePreview(message.html, message.error);
           break;
         case 'promptComplete':
           const promptInput = document.getElementById('prompt');
