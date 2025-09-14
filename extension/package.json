@@ -92,6 +92,11 @@
       {
         "command": "via.openResultsFolder",
         "title": "VIA: Open Results Folder"
+      },
+      {
+        "command": "via.updatePreview",
+        "title": "VIA: Update Preview",
+        "icon": "$(preview)"
       }
     ]
   },
@@ -110,8 +115,8 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@mendable/firecrawl-js": "^4.3.4",
     "@types/dotenv": "^6.1.1",
-    "dotenv": "^17.2.2"
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2"
   }
 }

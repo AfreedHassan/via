@@ -1,5 +1,6 @@
 // fix the import error for vscode
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import * as dotenv from 'dotenv';
 import { LocalAdapter } from './storage.local';
@@ -9,26 +10,25 @@ import { GalleryPanel } from './galleryPanel';
 import { getOpenAIClient, generateUI } from './llm';
 import { writeOutput } from './writer';
 
-export function activate(context: vscode.ExtensionContext) {
-	try { 
-		console.log('Loading .env file from root directory...');
-		const result = dotenv.config({ path: '../.env' });
-		console.log('Dotenv result:', result);
-		console.log('FIRECRAWL_API_KEY present:', !!process.env.FIRECRAWL_API_KEY);
-		console.log('Current working directory:', process.cwd());
-	} catch (error) { 
-		console.error('Error loading .env:', error);
-	}
+export async function activate(context: vscode.ExtensionContext) {
+  // Load environment variables from root directory
+  const rootEnvPath = path.join(__dirname, '..', '..', '.env');
+  try {
+    dotenv.config({ path: rootEnvPath });
+  } catch (err) {
+    console.error('Failed to load .env file:', err);
+  }
+	try { dotenv.config(); } catch { /* ignore */ }
 	// hydrate secrets from env if present
 	const envPairs: Array<[string, string | undefined]> = [
 		['via.firecrawlApiKey', process.env.FIRECRAWL_API_KEY],
-		['via.openrouterApiKey', process.env.OPENROUTER_API_KEY],
+		['openrouter_api_key', process.env.OPENROUTER_API_KEY],
 		//['via.openaiApiKey', process.env.OPENAI_API_KEY],
 	];
 	context.secrets.get('via.firecrawlApiKey').then(async existing => {
 		if (!existing && envPairs[0][1]) { await context.secrets.store(envPairs[0][0], envPairs[0][1] as string); }
 	});
-	context.secrets.get('via.openrouterApiKey').then(async existing => {
+	context.secrets.get('openrouter_api_key').then(async existing => {
 		if (!existing && envPairs[1][1]) { await context.secrets.store(envPairs[1][0], envPairs[1][1] as string); }
 	});
 	// context.secrets.get('via.openaiApiKey').then(async existing => {
@@ -36,13 +36,26 @@ export function activate(context: vscode.ExtensionContext) {
 	// });
 
     // Register our custom webview provider
-    const sidebarViewProvider = new SidebarViewProvider(context.extensionUri);
+    const sidebarProvider = new SidebarViewProvider(context.extensionUri, context);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             SidebarViewProvider.viewType,
-            sidebarViewProvider
+            sidebarProvider
         )
+    );
+
+    // Register preview update command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('via.updatePreview', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const code = editor.document.getText();
+                await sidebarProvider.updatePreview(code);
+            } else {
+                vscode.window.showInformationMessage('Open a file to preview');
+            }
+        })
     );
 
     // Register inline completion provider for .txt files
@@ -169,9 +182,16 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('via.setOpenRouterKey', async () => {
-        const key = await vscode.window.showInputBox({ prompt: 'Enter OpenRouter API key', password: true });
+        const key = await vscode.window.showInputBox({ 
+            prompt: 'Enter OpenRouter API key (starts with sk-or-...)',
+            password: true,
+            placeHolder: 'sk-or-...',
+            validateInput: text => {
+                return text.startsWith('sk-or-') ? null : 'OpenRouter API key should start with sk-or-';
+            }
+        });
         if (!key) { return; }
-        await context.secrets.store('via.openrouterApiKey', key);
+        await context.secrets.store('openrouter_api_key', key);
         vscode.window.showInformationMessage('OpenRouter key saved to Secret Storage.');
     }));
 

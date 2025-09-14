@@ -26,6 +26,17 @@ export async function getShots(apiKey: string, userQuery: string): Promise<Shot[
         console.log('Returning cached results');
         return cached.shots;
     }
+    // thing -> class
+
+    // image -> v-img content-block border-radius-8 
+    // comments -> data-original-title="Feedback"
+    // comment texts -> class="shot-comment-text"->p
+
+    // details -> data-original-title="Shot Details"
+    // Views / div
+    // Saves / div
+    // Likes / div
+    // Comments / div
 
     try {
         console.log('Initializing Firecrawl...');
