@@ -30,28 +30,40 @@ export async function getShots(apiKey: string, userQuery: string): Promise<Shot[
     try {
         console.log('Initializing Firecrawl...');
         const fc = getFirecrawl(apiKey);
-        console.log('Scraping Dribbble popular shots...');
-        const res = await fc.scrape('https://dribbble.com/shots/popular', {
+        const searchUrl = `https://dribbble.com/search/${encodeURIComponent(userQuery)}?type=shots`;
+        console.log('Scraping Dribbble search page...', searchUrl);
+        const data = await fc.scrape(searchUrl, {
             formats: ['html'],
-            waitFor: 1500
+            waitFor: 2500
         });
         console.log('Search completed. Processing results...');
 
-        const html: string = res?.data?.html || '';
+        const html: string = (data as any)?.html || '';
         console.log('Parsing HTML for shots...');
         
         // Find all shot entries
         const shots: Shot[] = [];
-        const matches = [...html.matchAll(/<a[^>]+href="(\/shots\/[^"]+)"[^>]*>.*?<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)".*?<\/a>/gs)];
+        // Match anchors to /shots/... and pick the first plausible image source inside
+        const matches = [...html.matchAll(/<a[^>]+href=\"(\/shots\/[^"]+)\"[\s\S]*?<img[\s\S]*?>[\s\S]*?<\/a>/gsi)];
         
         for (const match of matches) {
             const shotPath = match[1];
-            const imageUrl = match[2];
-            const title = match[3];
+            const anchorBlock = match[0];
+            // Try to extract a usable image URL
+            const srcMatch = anchorBlock.match(/\s(?:src|data-src)=\"([^\"]+)\"/i);
+            let imageUrl = srcMatch?.[1] || '';
+            if (!imageUrl) {
+                // Fallback to srcset: take the first URL
+                const srcset = anchorBlock.match(/\ssrcset=\"([^\"]+)\"/i)?.[1] || '';
+                if (srcset) {
+                    imageUrl = (srcset.split(',')[0] || '').trim().split(' ')[0] || '';
+                }
+            }
+            const title = anchorBlock.match(/\salt=\"([^\"]*)\"/i)?.[1] || '';
             const shotUrl = `https://dribbble.com${shotPath}`;
             
             // Only add if it's a CDN image
-            if (imageUrl.includes('cdn.dribbble.com')) {
+            if (imageUrl && /(?:cdn\.dribbble\.com|images\.dribbble\.com|dribbble\.s3)/i.test(imageUrl)) {
                 shots.push({
                     id: shotUrl,
                     title: title || 'Dribbble shot',
@@ -62,7 +74,7 @@ export async function getShots(apiKey: string, userQuery: string): Promise<Shot[
             }
         }
         
-        console.log(`Found ${shots.length} shots from popular page`);
+        console.log(`Found ${shots.length} shots from search page`);
 
         // Take the first 20 shots
         shots.splice(20);
@@ -97,3 +109,4 @@ async function searchWithRetry(fc: any, args: any, attempts = 3): Promise<any> {
 }
 
 function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+

@@ -7,11 +7,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
         private readonly _extensionUri: vscode.Uri,
     ) { }
 
+    private _view?: vscode.WebviewView;
+    private _generatedHtml?: string;
+
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
+        this._view = webviewView;
         // Set fixed dimensions
         const bgUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "assets", "background.png"));
 
@@ -61,6 +65,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
                         case 'showAlert':
                             vscode.window.showInformationMessage('Button clicked!');
                             return;
+                        case 'resetPreview':
+                            this.resetPreview();
+                            return;
                     }
                 }
             );
@@ -70,6 +77,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     private _messageHandlerSet: boolean = false;
 
     private _getHtmlContent(bgUri?: vscode.Uri): string {
+        if (this._generatedHtml) {
+            return this._wrapGeneratedHtml(this._generatedHtml);
+        }
         return `
 <!DOCTYPE html>
 <html lang="en">
@@ -291,6 +301,53 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
   </script>
 </body>
 
+</html>`;
+    }
+
+    // External APIs used by extension activation to push generated preview
+    public setPreviewHtml(html: string) {
+        this._generatedHtml = html;
+        if (this._view) {
+            this._view.webview.html = this._wrapGeneratedHtml(html);
+        }
+    }
+
+    public resetPreview() {
+        this._generatedHtml = undefined;
+        if (this._view) {
+            this._updateWebview(this._view);
+        }
+    }
+
+    private _wrapGeneratedHtml(inner: string): string {
+        const nonce = String(Math.random()).slice(2);
+        return `<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta charset="utf-8" />
+    <style>
+      :root { --bg: #0E204E; --fg: #fff; }
+      body { margin:0; padding:16px; font-family: var(--vscode-font-family); background: var(--bg); color: var(--fg); }
+      .bar { display:flex; gap:8px; margin-bottom:12px; }
+      .btn { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border:0; padding:6px 10px; border-radius:6px; cursor:pointer; }
+      .frame { background:#fff; color:#000; border-radius:8px; padding:0; overflow:auto; min-height: 60vh; }
+      .hint { font-size: 12px; color: var(--vscode-descriptionForeground); margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <button class="btn" id="back">Back to default</button>
+      <div class="hint">Showing generated preview</div>
+    </div>
+    <div class="frame">${inner}</div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+      document.getElementById('back').onclick = () => {
+        vscode.postMessage({ command: 'resetPreview' });
+      };
+    </script>
+  </body>
 </html>`;
     }
 }
