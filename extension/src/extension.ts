@@ -22,26 +22,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	// hydrate secrets from env if present
 	const envPairs: Array<[string, string | undefined]> = [
 		['via.firecrawlApiKey', process.env.FIRECRAWL_API_KEY],
-		['openrouter_api_key', process.env.OPENROUTER_API_KEY],
-		//['via.openaiApiKey', process.env.OPENAI_API_KEY],
+		['via.openaiApiKey', process.env.OPENAI_API_KEY],
 	];
 	context.secrets.get('via.firecrawlApiKey').then(async existing => {
 		if (!existing && envPairs[0][1]) { await context.secrets.store(envPairs[0][0], envPairs[0][1] as string); }
 	});
-	context.secrets.get('openrouter_api_key').then(async existing => {
+	context.secrets.get('via.openaiApiKey').then(async existing => {
 		if (!existing && envPairs[1][1]) { await context.secrets.store(envPairs[1][0], envPairs[1][1] as string); }
 	});
-	// context.secrets.get('via.openaiApiKey').then(async existing => {
-	// 	if (!existing && envPairs[2][1]) { await context.secrets.store(envPairs[2][0], envPairs[2][1] as string); }
-	// });
 
     // Register our custom webview provider
-    const sidebarProvider = new SidebarViewProvider(context.extensionUri, context);
+    const sidebarViewProvider = new SidebarViewProvider(context.extensionUri, context);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             SidebarViewProvider.viewType,
-            sidebarProvider
+            sidebarViewProvider
         )
     );
 
@@ -51,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
                 const code = editor.document.getText();
-                await sidebarProvider.updatePreview(code);
+                await sidebarViewProvider.updatePreview(code);
             } else {
                 vscode.window.showInformationMessage('Open a file to preview');
             }
@@ -140,7 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     // Try to show in the sidebar preview if HTML is present
                     const htmlForPreview = (resultText.match(/```html[\r\n]+([\s\S]*?)```/i)?.[1] || '').trim();
                     if (htmlForPreview) {
-                        try { sidebarViewProvider.setPreviewHtml(htmlForPreview); } catch { /* noop */ }
+                        try { await sidebarViewProvider.updatePreview(htmlForPreview); } catch { /* noop */ }
                     }
                     await writeOutput(message.prompt || prompt, result.rawText);
 
@@ -168,7 +164,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Secret storage commands
     context.subscriptions.push(vscode.commands.registerCommand('via.setOpenAIKey', async () => {
-        const key = await vscode.window.showInputBox({ prompt: 'Enter OpenAI API key', password: true });
+        const key = await vscode.window.showInputBox({ 
+            prompt: 'Enter OpenAI API key (starts with sk-...)',
+            password: true,
+            placeHolder: 'sk-...',
+            validateInput: text => {
+                return text.startsWith('sk-') ? null : 'OpenAI API key should start with sk-';
+            }
+        });
         if (!key) { return; }
         await context.secrets.store('via.openaiApiKey', key);
         vscode.window.showInformationMessage('OpenAI key saved to Secret Storage.');
@@ -179,20 +182,6 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!key) { return; }
         await context.secrets.store('via.firecrawlApiKey', key);
         vscode.window.showInformationMessage('Firecrawl key saved to Secret Storage.');
-    }));
-
-    context.subscriptions.push(vscode.commands.registerCommand('via.setOpenRouterKey', async () => {
-        const key = await vscode.window.showInputBox({ 
-            prompt: 'Enter OpenRouter API key (starts with sk-or-...)',
-            password: true,
-            placeHolder: 'sk-or-...',
-            validateInput: text => {
-                return text.startsWith('sk-or-') ? null : 'OpenRouter API key should start with sk-or-';
-            }
-        });
-        if (!key) { return; }
-        await context.secrets.store('openrouter_api_key', key);
-        vscode.window.showInformationMessage('OpenRouter key saved to Secret Storage.');
     }));
 
     // Open last results folder
