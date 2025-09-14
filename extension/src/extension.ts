@@ -124,6 +124,11 @@ export function activate(context: vscode.ExtensionContext) {
                         resultText = res.rawText;
                     }
                     const result = { rawText: resultText };
+                    // Try to show in the sidebar preview if HTML is present
+                    const htmlForPreview = (resultText.match(/```html[\r\n]+([\s\S]*?)```/i)?.[1] || '').trim();
+                    if (htmlForPreview) {
+                        try { sidebarViewProvider.setPreviewHtml(htmlForPreview); } catch { /* noop */ }
+                    }
                     await writeOutput(message.prompt || prompt, result.rawText);
 
                     // storage record (local only for v1)
